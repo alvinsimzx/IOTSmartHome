@@ -1,0 +1,10 @@
+certifi==2021.5.30
+chardet==4.0.0
+dnspython==2.1.0
+idna==2.10
+paho-mqtt==1.5.1
+pyTelegramBotAPI==3.7.9
+python-decouple==3.4
+python-etcd==0.4.5
+requests==2.25.1
+urllib3==1.26.5
