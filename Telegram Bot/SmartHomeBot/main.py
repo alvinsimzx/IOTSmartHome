@@ -1,15 +1,13 @@
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+#import resources
 import telebot
 from decouple import config
 import paho.mqtt.publish as publish
 
+#Set up Telegram API Key
 API_KEY = config('API_KEY')
 bot = telebot.TeleBot(API_KEY)
 
-
+#References for device's threshold values in Thingsboard
 thresholdVars = {"/TemperatureGardenChange":"TemperatureThresholdVal","/SoilGardenChange":"SoilThresholdVal","/SunlightGardenChange":"SunlightThresholdVal",
 "/LightVentilationChange":"thresholdLightIntensity","/TemperatureVentilationChange":"thresholdTemp",
 "/SmokeFireChange":"Threshold_smoke","/TemperatureFireChange":"Threshold_temperature",
@@ -17,13 +15,13 @@ thresholdVars = {"/TemperatureGardenChange":"TemperatureThresholdVal","/SoilGard
 
 command_dict = {}
 
-class ActionLocation:
+class ActionLocation: #Used for Threshold changes
     def __init__(self, varname, deviceKey):
         self.varname = varname
         self.deviceKey = deviceKey
 
-
-@bot.message_handler(commands=['commands'])
+#Show list of available actions
+@bot.message_handler(commands=['commands']) 
 def commands(message):
     list_of_commands = '''
     Which command would you like to do?
@@ -37,6 +35,7 @@ def commands(message):
     bot.reply_to(message, list_of_commands)
 
 
+#Show all available manual trigger actions
 @bot.message_handler(commands=['triggers'])
 def TriggerCommands(message):
     list_of_commands = '''
@@ -61,11 +60,8 @@ def TriggerCommands(message):
     '''
     bot.reply_to(message, list_of_commands)
 
-@bot.message_handler(commands=['Greet'])
-def greet(message):
-    bot.reply_to(message, "Hey!")
 
-
+### Gardening System Manual Triggers
 @bot.message_handler(commands=['waterplant'])
 def WaterPlant(message):
     publish.single(topic="v1/devices/me/attributes",
@@ -89,6 +85,7 @@ def ClosePlantShade(message):
     bot.reply_to(message, "I have closed the garden's shade!")
 
 
+### Fire Alarm System Manual Triggers
 @bot.message_handler(commands=['watersprinkler'])
 def WaterSprinkler(message):
     publish.single(topic="v1/devices/me/attributes",
@@ -104,6 +101,7 @@ def OpenBuzzer(message):
     bot.reply_to(message, "I have turned on the alarm!")
 
 
+### Home Light System Manual Triggers
 @bot.message_handler(commands=['livinglights'])
 def TurnOnLivingLights(message):
     publish.single(topic="v1/devices/me/attributes",
@@ -132,6 +130,7 @@ def TurnOnLivingLights(message):
                    auth={'username':config('HomeLightToken'),'password':""})
     bot.reply_to(message, "I have triggered the living room lights!")    
 
+### Ventilation System Manual Triggers
 @bot.message_handler(commands=['openventilator'])
 def Open_Ventilator(message):
     publish.single(topic="v1/devices/me/attributes",
@@ -153,6 +152,7 @@ def ChangeThresholdRequest(message):
 
 ############################
 
+#Ask for which system the user wishes to change
 @bot.message_handler(commands=['GardenChange','VentilationChange','HomeLightsChange','FireAlarmChange'])
 def ChangeGardenThreshold(message):
     if(message.text == "/GardenChange"):
@@ -166,7 +166,7 @@ def ChangeGardenThreshold(message):
     
 
 ##############################
-
+#Ask for which threshold the user wishes to change
 @bot.message_handler(commands=['TemperatureGardenChange','SoilGardenChange','SunlightGardenChange','LightVentilationChange','TemperatureVentilationChange','SmokeFireChange','TemperatureFireChange','DistanceHomeChange','LightHomeChange'])
 def TemperatureGardenChange(message):
     if(message.text in ["/TemperatureGardenChange","/SoilGardenChange","/SunlightGardenChange"]):
@@ -186,6 +186,7 @@ def TemperatureGardenChange(message):
         command_dict[message.chat.id] = ActionLocation(message.text, config('HomeLightToken'))
         bot.register_next_step_handler(MessagetoSend, ChangeThreshold)           
 
+#Change the threshold
 def ChangeThreshold(message):
     try:
         int(message.text)
@@ -193,7 +194,7 @@ def ChangeThreshold(message):
         bot.send_message(message.chat.id, 'That is an invalid value')
         return
 
-    publish.single(topic="v1/devices/me/attributes",
+    publish.single(topic="v1/devices/me/attributes", #Update threshold via Attributes topic
                    payload='{"'+ str(thresholdVars[command_dict[message.chat.id].varname]) +'":' +str(message.text) + '}',hostname="thingsboard.cloud",
                    auth={'username':command_dict[message.chat.id].deviceKey ,'password':""})
     
@@ -204,5 +205,3 @@ def ChangeThreshold(message):
 
 bot.polling()
 
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/

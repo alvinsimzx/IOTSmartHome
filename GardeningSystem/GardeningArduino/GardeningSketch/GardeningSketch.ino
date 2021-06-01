@@ -82,5 +82,5 @@ void loop() {
           stepper.step(2038);
       }
    }
-   delay(1000);
+   delay(10000);
 }
